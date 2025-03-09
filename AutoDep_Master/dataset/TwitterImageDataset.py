@@ -7,7 +7,7 @@ import random
 class TwitterImageDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         # Get the absolute path of the directory where this script resides
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        script_dir = os.getcwd()
         
         # Construct the absolute path to the dataset root directory
         self.root_dir = os.path.abspath(os.path.join(script_dir, root_dir))
