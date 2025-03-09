@@ -30,10 +30,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, Subset
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-
-base_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), 'dataset'))
-
-sys.path.append(base_dir)
+sys.path.append(os.path.join(os.getcwd(),'dataset'))
 
 from TwitterImageDataset import TwitterImageDataset
 

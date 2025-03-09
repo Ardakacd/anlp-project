@@ -8,9 +8,7 @@ from torchvision.models import vit_b_16
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
-base_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), 'dataset'))
-
-sys.path.append(base_dir)
+sys.path.append(os.path.join(os.getcwd(),'dataset'))
 
 from TwitterImageDataset import TwitterImageDataset
 
