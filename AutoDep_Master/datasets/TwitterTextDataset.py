@@ -22,12 +22,12 @@ class TwitterTextDataset(Dataset):
         # Load control group texts
         control_path = os.path.join(self.root_dir, "control_group", "users")
         print(f"Loading control group from: {control_path}")
-        self.load_texts(control_path, label=0, user_limit = 1)
+        self.load_texts(control_path, label=0, user_limit = 10)
 
         # Load diagnosed group texts
         diagnosed_path = os.path.join(self.root_dir, "diagnosed_group", "users")
         print(f"Loading diagnosed group from: {diagnosed_path}")
-        self.load_texts(diagnosed_path, label=1, user_limit = 1)
+        self.load_texts(diagnosed_path, label=1, user_limit = 10)
 
         # Shuffle data for randomness
         random.shuffle(self.data)
@@ -40,6 +40,7 @@ class TwitterTextDataset(Dataset):
             return
 
         user_count = 0  # Initialize a counter for processed users
+        print("User Limit:", user_limit)
 
         for user in os.listdir(group_path):
             # Skip hidden files and directories
