@@ -31,7 +31,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
-base_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), '..', 'dataset'))
+base_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), 'dataset'))
 
 sys.path.append(base_dir)
 
@@ -45,7 +45,7 @@ transform = transforms.Compose([
 ])
 
 print("Loading dataset...")
-dataset = TwitterImageDataset("../../AutoDep_Master/data", transform=transform)
+dataset = TwitterImageDataset("data", transform=transform)
 
 train_size = int(0.8 * len(dataset))
 test_size = len(dataset) - train_size
