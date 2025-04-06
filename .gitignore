@@ -1,0 +1,9 @@
+# Ignore all user data folders
+AutoDep_Master/data/control_group/users/
+AutoDep_Master/data/diagnosed_group/users/
+
+# Optionally ignore ALL CSV/image data inside user folders
+*.csv
+*.jpg
+*.jpeg
+*.png
