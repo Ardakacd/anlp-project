@@ -136,7 +136,7 @@ project_root = os.path.abspath(os.path.join(script_dir, "../../"))
 results_dir = os.path.join(project_root, "results", "multimodal")
 os.makedirs(results_dir, exist_ok=True)
 
-results_path = os.path.join(results_dir, "output.txt")
+results_path = os.path.join(results_dir, "bert_efficientnet_results.txt")
 with open(results_path, "w") as f:
     f.write(f"Test Accuracy: {accuracy:.4f}\n")
     f.write(f"Precision: {precision:.4f}\n")

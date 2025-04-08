@@ -62,17 +62,18 @@ def compute_metrics(eval_pred):
     }
 
 training_args = TrainingArguments(
-    output_dir="./results/text/albert-base-v2",
+    output_dir=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../results/text/albert-base-v2")),
     eval_strategy="epoch",
     save_strategy="epoch",
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
     num_train_epochs=3,
     weight_decay=0.01,
-    logging_dir="./results/text/logs/albert-base-v2",
+    logging_dir=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../results/text/logs/albert-base-v2")),
     logging_steps=10,
     load_best_model_at_end=True,
 )
+
 
 trainer = Trainer(
     model=model,

@@ -62,17 +62,18 @@ def compute_metrics(eval_pred):
 
 # Training config
 training_args = TrainingArguments(
-    output_dir="./results/text/distilbert-base-uncased",
+    output_dir=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../results/text/distilbert-base-uncased")),
     eval_strategy="epoch",
     save_strategy="epoch",
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
     num_train_epochs=3,
     weight_decay=0.01,
-    logging_dir="./results/text/logs/distilbert-base-uncased",
+    logging_dir=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../results/text/logs/distilbert-base-uncased")),
     logging_steps=10,
     load_best_model_at_end=True,
 )
+
 
 
 # Trainer
