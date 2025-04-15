@@ -27,10 +27,8 @@ dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..
 print(f"Resolved dataset path: {dataset_path}")
 
 # Load dataset
-dataset = TwitterTextDataset(dataset_path)  # tokenizer is handled internally now
+dataset = TwitterTextDataset(dataset_path)
 print(f"✅ Loaded {len(dataset)} text entries from dataset.")
-
-# Safety check
 if len(dataset) == 0:
     raise ValueError("🚨 ERROR: The dataset is empty! Please check the dataset path.")
 
@@ -42,6 +40,7 @@ train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 # Tokenizer and model
 tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
 model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=2)
+model.to(device)
 
 # Metric function
 def compute_metrics(eval_pred):
@@ -60,21 +59,24 @@ def compute_metrics(eval_pred):
         "f1": f1.compute(predictions=predictions, references=labels, average="binary")["f1"]
     }
 
+# Paths
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+results_dir = os.path.join(project_root, "results", "text", "distilbert-base-uncased")
+os.makedirs(results_dir, exist_ok=True)
+
 # Training config
 training_args = TrainingArguments(
-    output_dir=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../results/text/distilbert-base-uncased")),
+    output_dir=results_dir,
     eval_strategy="epoch",
     save_strategy="epoch",
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
     num_train_epochs=3,
     weight_decay=0.01,
-    logging_dir=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../results/text/logs/distilbert-base-uncased")),
+    logging_dir=os.path.join(project_root, "results", "text", "logs", "distilbert-base-uncased"),
     logging_steps=10,
     load_best_model_at_end=True,
 )
-
-
 
 # Trainer
 trainer = Trainer(
@@ -86,13 +88,36 @@ trainer = Trainer(
 )
 
 # Train
+print("🚀 Training started...")
 trainer.train()
 
 # Evaluate
 eval_results = trainer.evaluate()
-print("📊 Evaluation Results:", eval_results)
 
-# Save
-model.save_pretrained("distilbert_base_uncased_model")
-tokenizer.save_pretrained("distilbert_base_uncased_model")
-print("✅ Training complete. Model saved.")
+# Pretty Print
+accuracy = eval_results.get("eval_accuracy", 0.0)
+precision = eval_results.get("eval_precision", 0.0)
+recall = eval_results.get("eval_recall", 0.0)
+f1 = eval_results.get("eval_f1", 0.0)
+
+print("\n📊 Evaluation Results:")
+print(f"🎯 Test Accuracy: {accuracy:.4f}")
+print(f"🎯 Precision: {precision:.4f}")
+print(f"🎯 Recall: {recall:.4f}")
+print(f"🎯 F1 Score: {f1:.4f}")
+
+# Save results
+output_txt_path = os.path.join(results_dir, "output.txt")
+with open(output_txt_path, "w") as f:
+    f.write(f"Test Accuracy: {accuracy:.4f}\n")
+    f.write(f"Precision: {precision:.4f}\n")
+    f.write(f"Recall: {recall:.4f}\n")
+    f.write(f"F1 Score: {f1:.4f}\n")
+
+print(f"📁 Results saved to {output_txt_path}")
+
+# Save model
+model_dir = os.path.join(results_dir, "model")
+model.save_pretrained(model_dir)
+tokenizer.save_pretrained(model_dir)
+print("✅ Training complete. Model and tokenizer saved.")

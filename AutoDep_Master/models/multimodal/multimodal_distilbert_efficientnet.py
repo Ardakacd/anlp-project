@@ -38,15 +38,15 @@ train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
 # ✅ Define Multimodal Model
-class MultimodalDistilBertGoogLeNet(nn.Module):
+class MultimodalDistilBertEfficientNet(nn.Module):
     def __init__(self):
         super().__init__()
         self.bert = DistilBertModel.from_pretrained("distilbert-base-uncased")
         self.text_hidden_size = self.bert.config.hidden_size
 
-        googlenet = models.googlenet(weights=models.GoogLeNet_Weights.IMAGENET1K_V1)
-        self.image_encoder = nn.Sequential(*list(googlenet.children())[:-1])
-        self.image_hidden_size = googlenet.fc.in_features * 2
+        efficientnet = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
+        self.image_encoder = nn.Sequential(*list(efficientnet.children())[:-1])
+        self.image_hidden_size = efficientnet.classifier[1].in_features * 2
 
         self.gate = nn.Sequential(
             nn.Linear(self.image_hidden_size, self.image_hidden_size),
@@ -67,15 +67,12 @@ class MultimodalDistilBertGoogLeNet(nn.Module):
         banner_feat = self.image_encoder(banner_img).squeeze(-1).squeeze(-1)
         image_feat = torch.cat([profile_feat, banner_feat], dim=1)
 
-        # Gating image features
         gated_image_feat = image_feat * self.gate(image_feat)
-
-        # Weighted fusion
         fused = torch.cat([text_feat * 0.9, gated_image_feat * 0.1], dim=1)
         return self.fusion(fused)
 
 # ✅ Model setup
-model = MultimodalDistilBertGoogLeNet().to(device)
+model = MultimodalDistilBertEfficientNet().to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5, weight_decay=0.01)
 criterion = nn.CrossEntropyLoss()
 
@@ -103,7 +100,7 @@ for epoch in range(num_epochs):
 
     print(f"📉 Epoch {epoch+1}/{num_epochs}, Loss: {total_loss/len(train_loader):.4f}")
 
-# 🧪 Evaluation
+# 🧰 Evaluation
 print("🧪 Evaluating model...")
 model.eval()
 all_preds, all_labels = [], []
@@ -138,7 +135,7 @@ project_root = os.path.abspath(os.path.join(script_dir, "../../"))
 results_dir = os.path.join(project_root, "results", "multimodal")
 os.makedirs(results_dir, exist_ok=True)
 
-results_path = os.path.join(results_dir, "distilbert_googlenet_results.txt")
+results_path = os.path.join(results_dir, "distilbert_efficientnet_results.txt")
 with open(results_path, "w") as f:
     f.write(f"Accuracy: {accuracy:.4f}\n")
     f.write(f"Precision: {precision:.4f}\n")

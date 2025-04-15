@@ -8,9 +8,8 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from transformers import BertTokenizer, BertModel
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 
-# Add root to sys.path
+# Path setup
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-
 from dataset.TwitterMultimodalDataset import TwitterMultimodalDataset
 
 # Device setup
@@ -19,7 +18,7 @@ print(f"{'✅' if torch.cuda.is_available() else '⚠️'} Using device: {device
 if torch.cuda.is_available():
     print(f"🟢 GPU Name: {torch.cuda.get_device_name(0)}")
 
-# Load tokenizer and transforms
+# Tokenizer & transforms
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -27,24 +26,19 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Load multimodal dataset
+# Dataset loading
 print("🔄 Loading TwitterMultimodalDataset...")
 dataset = TwitterMultimodalDataset(transform=transform, max_tokens=512)
 print(f"✅ Loaded {len(dataset)} multimodal entries.")
 
-# Reduce dataset for speed/testing
-subset_size = min(500, len(dataset))
-indices = torch.randperm(len(dataset))[:subset_size]
-subset = torch.utils.data.Subset(dataset, indices)
+# Full dataset used
+train_size = int(0.8 * len(dataset))
+val_size = len(dataset) - train_size
+train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
-train_size = int(0.8 * len(subset))
-val_size = len(subset) - train_size
-train_dataset, val_dataset = random_split(subset, [train_size, val_size])
-
-train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False)
-
-# Define model
+# Model
 class MultimodalBertEfficientNet(nn.Module):
     def __init__(self):
         super().__init__()
@@ -55,32 +49,45 @@ class MultimodalBertEfficientNet(nn.Module):
         self.image_encoder = nn.Sequential(*list(efficientnet.children())[:-1])
         self.image_hidden_size = efficientnet.classifier[1].in_features * 2  # profile + banner
 
+        self.gating = nn.Sequential(
+            nn.Linear(self.image_hidden_size, self.image_hidden_size),
+            nn.Sigmoid()
+        )
+
         self.fusion = nn.Sequential(
             nn.Linear(self.text_hidden_size + self.image_hidden_size, 512),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.LayerNorm(512),  # More stable than BatchNorm1d for small batch sizes
+            nn.Dropout(0.4),
             nn.Linear(512, 2)
         )
 
     def forward(self, input_ids, attention_mask, profile_img, banner_img):
-        text_out = self.bert(input_ids=input_ids, attention_mask=attention_mask)
-        text_feat = text_out.last_hidden_state[:, 0, :]  # [CLS]
+        text_feat = self.bert(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state[:, 0, :]
 
         profile_feat = self.image_encoder(profile_img).squeeze(-1).squeeze(-1)
         banner_feat = self.image_encoder(banner_img).squeeze(-1).squeeze(-1)
         image_feat = torch.cat([profile_feat, banner_feat], dim=1)
 
-        combined = torch.cat([text_feat, image_feat], dim=1)
-        return self.fusion(combined)
+        # Apply dynamic gating to suppress noisy image features
+        gate = self.gating(image_feat)
+        gated_image_feat = image_feat * gate
+
+        # Weighted fusion (90% text, 10% image)
+        text_weight = 0.9
+        image_weight = 0.1
+        fused = torch.cat([text_feat * text_weight, gated_image_feat * image_weight], dim=1)
+
+        return self.fusion(fused)
 
 # Initialize model
 model = MultimodalBertEfficientNet().to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5, weight_decay=0.01)
 criterion = nn.CrossEntropyLoss()
 
-# Training
-print("🚀 Training has started...")
-num_epochs = 5
+# Training loop
+print("🚀 Training started...")
+num_epochs = 10
 for epoch in range(num_epochs):
     model.train()
     total_loss = 0.0
@@ -96,6 +103,7 @@ for epoch in range(num_epochs):
         outputs = model(input_ids, attention_mask, profile_img, banner_img)
         loss = criterion(outputs, labels)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         total_loss += loss.item()
 
@@ -121,11 +129,11 @@ with torch.no_grad():
         all_labels.extend(labels.cpu().numpy())
 
 accuracy = accuracy_score(all_labels, all_preds)
-precision = precision_score(all_labels, all_preds, average='binary')
-recall = recall_score(all_labels, all_preds, average='binary')
-f1 = f1_score(all_labels, all_preds, average='binary')
+precision = precision_score(all_labels, all_preds, average='binary', zero_division=0)
+recall = recall_score(all_labels, all_preds, average='binary', zero_division=0)
+f1 = f1_score(all_labels, all_preds, average='binary', zero_division=0)
 
-print(f"🎯 Accuracy: {accuracy:.4f}")
+print(f"\n🎯 Accuracy: {accuracy:.4f}")
 print(f"🎯 Precision: {precision:.4f}")
 print(f"🎯 Recall: {recall:.4f}")
 print(f"🎯 F1 Score: {f1:.4f}")

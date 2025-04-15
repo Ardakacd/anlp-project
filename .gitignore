@@ -2,6 +2,9 @@
 AutoDep_Master/data/control_group/users/
 AutoDep_Master/data/diagnosed_group/users/
 
+# Ignore results generated
+AutoDep_Master/results/
+
 # Optionally ignore ALL CSV/image data inside user folders
 *.csv
 *.jpg

@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 import pandas as pd
 import re
+import random
 
 class TwitterMultimodalDataset(Dataset):
     def __init__(self, root_dir="AutoDep_Master/data", transform=None, max_tokens=512):
@@ -15,7 +16,7 @@ class TwitterMultimodalDataset(Dataset):
         self.data = []
 
         print(f"📁 Resolved dataset path: {self.root_dir}")
-        
+
         control_path = os.path.join(self.root_dir, "control_group", "users")
         diagnosed_path = os.path.join(self.root_dir, "diagnosed_group", "users")
 
@@ -25,6 +26,7 @@ class TwitterMultimodalDataset(Dataset):
         print("🔍 Accessing diagnosed group data...")
         self.load_users(diagnosed_path, label=1)
 
+        random.shuffle(self.data)
         print(f"✅ Multimodal dataset successfully loaded with {len(self.data)} entries.")
 
     def find_image_with_extensions(self, folder, base_filename, extensions=(".jpg", ".jpeg", ".png")):
@@ -92,7 +94,10 @@ class TwitterMultimodalDataset(Dataset):
             texts = []
 
         texts = [self.preprocess_text(t) for t in texts if not t.startswith("RT ")]
-        joined_text = " ".join(texts)[:self.max_tokens]
+        joined_text = " ".join(texts)
+
+        # Token clipping safeguard to not cut words in the middle
+        joined_text = joined_text[:self.max_tokens].rsplit(' ', 1)[0]
 
         return {
             "profile_img": profile_img,

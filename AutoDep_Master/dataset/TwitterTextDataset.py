@@ -114,7 +114,7 @@ class TwitterTextDataset(Dataset):
             text,
             padding="max_length",
             truncation=True,
-            max_length=128,
+            max_length=384,
             return_tensors="pt",
         )
 
