@@ -1,122 +1,131 @@
+
 # Multimodal Sentiment Analysis: Detecting Depression from Social Media
 
 ## Overview
 
-Depression is a critical global health issue that affects millions of people worldwide. Social media provides a valuable source
-of data to identify early signs of depression through both textual and visual analysis. This project aims to leverage
-**Natural Language Processing (NLP)** and **Computer Vision (CV)** to develop models capable of detecting depression based
-on users' tweets, profile pictures, and banners.
+Depression is a critical global health issue that affects millions of people worldwide. Social media provides a valuable source of data to identify early signs of depression through both textual and visual analysis. This project aims to leverage **Natural Language Processing (NLP)** and **Computer Vision (CV)** to develop models capable of detecting depression based on users' tweets, profile pictures, and banners.
 
 ## Project Structure
 
 ```
 AutoDep_Master/
- ├── data/                        # Stores raw images & metadata
- │   ├── control_group/           # Users without depression
- │   ├── diagnosed_group/         # Users with depression
- │   └── metadata.csv             # (Optional) User info: ID, label, etc.
+ ├── data/                        # Raw user folders with tweets and images
+ │   ├── control_group/
+ │   ├── diagnosed_group/
  │
- ├── dataset/                    # Handles preprocessing
- │   ├── TwitterImageDataset.py   # PyTorch Dataset class for images
- │   └── TwitterTextDataset.py    # PyTorch Dataset class for text
+ ├── dataset/                     # Dataset classes for text, image, multimodal
+ │   ├── TwitterImageDataset.py
+ │   ├── TwitterTextDataset.py
+ │   └── TwitterMultimodalDataset.py
  │
- ├── models/                      # Stores all model implementations
- │   ├── vision/                  # CNN-based image models
+ ├── models/
+ │   ├── text/                    # BERT-based text models
+ │   │   ├── albert-base-v2.py
+ │   │   ├── bert-base-uncased.py
+ │   │   └── distilbert-base-uncased.py
+ │   ├── vision/                  # CNN image models
  │   │   ├── efficientnet.py
- │   │   ├── resnet.py
- │   │   ├── vgg.py
- │   │   ├── vit.py
- │   │   └── googlenet.py
- │   ├── text/                    # NLP-based models
- │   │   ├── bert.py
- │   │   └── gpt.py
- │   ├── multimodal/              # Fusion models (text + images)
- │   │   └── fusion_model.py
+ │   │   ├── googlenet.py
+ │   │   └── vit.py
+ │   └── multimodal/              # Fusion models (text + image)
+ │       ├── multimodal_bert_efficientnet.py
+ │       ├── multimodal_distilbert_googlenet.py
+ │       └── multimodal_distilbert_efficientnet.py
  │
- ├── scripts/                     # Main training, evaluation, and inference scripts
- │   ├── train.py                 # Handles model training
- │   ├── evaluate.py              # Computes accuracy, F1-score
- │   ├── infer.py                 # Runs inference on new data
- │   └── main.py                  # Automates the whole pipeline
+ ├── results/                     # Output folders
+ │   ├── text/
+ │   ├── vision/
+ │   └── multimodal/
  │
- ├── requirements.txt              # Dependencies list
- ├── .gitignore                    # Ignore unnecessary files (checkpoints, .ipynb_checkpoints, __pycache__)
- ├── README.md                     # Main project documentation
+ ├── requirements.txt             # Project dependencies
+ └── README.md                    # Project documentation
 ```
 
 ## Methodology
 
-### 1. Data Collection & Preprocessing
+### Data Collection & Preprocessing
 
-- **Text Data**: Extracted from users' tweets and metadata (stored in CSV files).
-- **Image Data**: Includes profile pictures and banners.
-- **Processing**: Text tokenization, sentiment analysis, and image normalization.
+- **Text**: Tweets are extracted and cleaned per user.
+- **Images**: Profile and banner images are resized and normalized.
+- **Multimodal**: Text and images are combined per user into unified dataset entries.
 
-### 2. Model Training
+### Model Types
 
-- **Computer Vision Models**: EfficientNet, ResNet, VGG, ViT for image classification.
-- **NLP Models**: BERT and GPT for text-based sentiment classification.
-- **Multimodal Approach**: Fusion of both text and image embeddings for enhanced performance.
+- **Text Models**: BERT, DistilBERT, ALBERT
+- **Image Models**: EfficientNet, GoogleNet, ViT
+- **Multimodal Models**: Fusion of embeddings from NLP and CV branches using fully connected layers
 
-### 3. Evaluation
+### Evaluation
 
-The models are evaluated using:
+All models are evaluated using:
 
-- **Accuracy**: Measures the proportion of correctly classified instances.
-- **Precision**: Assesses the quality of positive predictions.
-- **Recall (Sensitivity)**: Measures the ability to identify actual positives.
-- **F1-Score**: Harmonic mean of precision and recall.
+- **Accuracy**
+- **Precision**
+- **Recall**
+- **F1-Score**
+
+Evaluation results are written to `.txt` files in the `results/` folder.
 
 ## Installation & Setup
 
-### Prerequisites
+### Dependencies
 
-Ensure you have Python installed along with the required libraries:
-
-```sh
+```bash
 pip install -r requirements.txt
 ```
 
-### Running the Dataset Loaders Independently
+For GPU-based training (recommended):
 
-To verify that the dataset classes work correctly, you can run:
-
-```sh
-python dataset/TwitterImageDataset.py  # Load images
-python dataset/TwitterTextDataset.py   # Load text data
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
-### Training the Model
+### Dataset Testing
 
-To train the multimodal model, run:
+You can verify dataset loaders work by running:
 
-```sh
-python scripts/train.py
+```bash
+python dataset/TwitterTextDataset.py
+python dataset/TwitterImageDataset.py
+python dataset/TwitterMultimodalDataset.py
 ```
 
-### Evaluating the Model
+## Running Models
 
-```sh
-python scripts/evaluate.py
+### Text Models
+
+```bash
+python models/text/bert-base-uncased.py
+python models/text/distilbert-base-uncased.py
+python models/text/albert-base-v2.py
 ```
 
-### Running Inference on New Data
+### Image Models
 
-```sh
-python scripts/infer.py --input new_user_data.csv
+```bash
+python models/vision/efficientnet.py
+python models/vision/googlenet.py
+python models/vision/vit.py
 ```
+
+### Multimodal Models
+
+```bash
+python models/multimodal/multimodal_bert_efficientnet.py
+python models/multimodal/multimodal_distilbert_googlenet.py
+python models/multimodal/multimodal_distilbert_efficientnet.py
+```
+
+Each script will print results to the console and save them in the appropriate folder under `results/`.
 
 ## Contributors
 
-- **Arda Kabadayi** (NetID: akabaday)
-- **Mike Chuvik** (NetID: mochuvik)
-
-## References
-
-For a detailed review of related research, refer to the `nlp-project.pdf` file in the repository.
+- **Arda Kabadayi** — akabaday@syr.edu  
+- **Mike Chuvik** — mochuvik@syr.edu
 
 ## Future Work
 
-- Improve multimodal fusion techniques.
-- Experiment with additional deep learning architectures.
-- Deploy the trained model as a web API for real-time classification.
+- Add attention-based fusion modules
+- Deploy as a web-based mental health tool
+- Add additional data modalities such as timestamps or user metadata
+
