@@ -1,8 +1,8 @@
-import torch
 import os
 import sys
+import torch
 import evaluate
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, Trainer, TrainingArguments
+from transformers import AutoTokenizer, DistilBertForSequenceClassification, Trainer, TrainingArguments
 from torch.utils.data import random_split
 
 # Setup
@@ -22,12 +22,14 @@ if device.type == "cuda":
 else:
     print("⚠️ GPU not available. Using CPU.")
 
-# Resolve dataset path
+# Tokenizer and dataset path
+model_name = "distilbert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
 dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../data"))
-print(f"Resolved dataset path: {dataset_path}")
 
 # Load dataset
-dataset = TwitterTextDataset(dataset_path)
+print("🔄 Loading dataset...")
+dataset = TwitterTextDataset(dataset_path, tokenizer=tokenizer)
 print(f"✅ Loaded {len(dataset)} text entries from dataset.")
 if len(dataset) == 0:
     raise ValueError("🚨 ERROR: The dataset is empty! Please check the dataset path.")
@@ -37,9 +39,8 @@ train_size = int(0.8 * len(dataset))
 val_size = len(dataset) - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-# Tokenizer and model
-tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=2)
+# Load model
+model = DistilBertForSequenceClassification.from_pretrained(model_name, num_labels=2)
 model.to(device)
 
 # Metric function
@@ -61,10 +62,10 @@ def compute_metrics(eval_pred):
 
 # Paths
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-results_dir = os.path.join(project_root, "results", "text", "distilbert-base-uncased")
+results_dir = os.path.join(project_root, "results", "text", model_name)
 os.makedirs(results_dir, exist_ok=True)
 
-# Training config
+# Training configuration
 training_args = TrainingArguments(
     output_dir=results_dir,
     eval_strategy="epoch",
@@ -73,7 +74,7 @@ training_args = TrainingArguments(
     per_device_eval_batch_size=16,
     num_train_epochs=3,
     weight_decay=0.01,
-    logging_dir=os.path.join(project_root, "results", "text", "logs", "distilbert-base-uncased"),
+    logging_dir=os.path.join(project_root, "results", "text", "logs", model_name),
     logging_steps=10,
     load_best_model_at_end=True,
 )

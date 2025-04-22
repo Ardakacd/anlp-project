@@ -3,7 +3,7 @@ import sys
 import torch
 import evaluate
 from torch.utils.data import random_split
-from transformers import AlbertForSequenceClassification, Trainer, TrainingArguments
+from transformers import AutoTokenizer, AlbertForSequenceClassification, Trainer, TrainingArguments
 
 # Move up to AutoDep_Master
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
@@ -20,9 +20,13 @@ if device.type == "cuda":
 else:
     print("⚠️ GPU not available. Using CPU.")
 
+# ✅ Set model name and tokenizer
+model_name = "albert-base-v2"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
 # ✅ Load Dataset
 dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../data"))
-dataset = TwitterTextDataset(dataset_path)
+dataset = TwitterTextDataset(dataset_path, tokenizer=tokenizer)
 
 print(f"✅ Loaded {len(dataset)} text entries from dataset.")
 if len(dataset) == 0:
@@ -34,7 +38,7 @@ val_size = len(dataset) - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
 # ✅ Load Model
-model = AlbertForSequenceClassification.from_pretrained("albert-base-v2", num_labels=2)
+model = AlbertForSequenceClassification.from_pretrained(model_name, num_labels=2)
 model.to(device)
 
 # ✅ Metrics
